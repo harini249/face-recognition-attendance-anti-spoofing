@@ -7,6 +7,7 @@
 
 import os
 import traceback
+import streamlit as st
 
 import cv2
 import math
@@ -63,25 +64,42 @@ class AntiSpoofPredict(Detection):
                                    if torch.cuda.is_available() else "cpu")
 
     def _load_model(self, model_path):
-        # define model
         model_name = os.path.basename(model_path)
         h_input, w_input, model_type, _ = parse_model_name(model_name)
-        self.kernel_size = get_kernel(h_input, w_input,)
-        self.model = MODEL_MAPPING[model_type](conv6_kernel=self.kernel_size).to(self.device)
+        self.kernel_size = get_kernel(h_input, w_input)
 
-        # load model weight
-        state_dict = torch.load(model_path, map_location=self.device)
-        keys = iter(state_dict)
-        first_layer_name = keys.__next__()
-        if first_layer_name.find('module.') >= 0:
-            from collections import OrderedDict
-            new_state_dict = OrderedDict()
-            for key, value in state_dict.items():
-                name_key = key[7:]
-                new_state_dict[name_key] = value
-            self.model.load_state_dict(new_state_dict)
-        else:
-            self.model.load_state_dict(state_dict)
+        if not hasattr(self, "_loaded_models"):
+            self._loaded_models = {}
+
+        if model_path not in self._loaded_models:
+            model = MODEL_MAPPING[model_type](
+                conv6_kernel=self.kernel_size
+                ).to(self.device)
+                
+            state_dict = torch.load(
+                model_path,
+                map_location=self.device
+            )
+            
+            keys = iter(state_dict)
+            first_layer_name = next(keys)
+
+            if first_layer_name.find('module.') >= 0:
+                from collections import OrderedDict
+                new_state_dict = OrderedDict()
+                
+                for key, value in state_dict.items():
+                    name_key = key[7:]
+                    new_state_dict[name_key] = value
+
+                model.load_state_dict(new_state_dict)
+            else:
+                model.load_state_dict(state_dict)
+
+            model.eval()
+            self._loaded_models[model_path] = model
+
+        self.model = self._loaded_models[model_path]
         return None
 
     def predict(self, img, model_path):

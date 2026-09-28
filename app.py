@@ -156,12 +156,20 @@ if not os.path.exists(VISITOR_HISTORY):
     os.mkdir(VISITOR_HISTORY)
 # st.write(VISITOR_HISTORY)
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
-mtcnn = MTCNN(
+@st.cache_resource
+def load_resnet(device):
+    return InceptionResnetV1(pretrained='vggface2').eval().to(device)
+
+resnet = load_resnet(device)
+@st.cache_resource
+def load_mtcnn(device):
+    return MTCNN(
         image_size=160, margin=0, min_face_size=20,
         thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
-        device=device,keep_all=True
-        )
+        device=device, keep_all=True
+    )
+
+mtcnn = load_mtcnn(device)
 ########################################################################################################################
 
 def main():
@@ -430,7 +438,7 @@ def main():
                 file.write(img_file_buffer.getbuffer())
                 # st.success('Image Saved Successfully!')
 
-            
+
             face_locations, prob = mtcnn(image_array, return_prob=True)
 
             if face_locations is not None and len(face_locations) > 0:

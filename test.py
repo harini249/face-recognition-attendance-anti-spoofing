@@ -11,6 +11,7 @@ import numpy as np
 import argparse
 import warnings
 import time
+import streamlit as st
 
 from src.anti_spoof_predict import AntiSpoofPredict
 from src.generate_patches import CropImage
@@ -31,8 +32,14 @@ def check_image(image):
         return True
 
 
+@st.cache_resource
+def load_antispoof(device_id):
+    return AntiSpoofPredict(device_id)
+
+
 def test(image, model_dir, device_id):
-    model_test = AntiSpoofPredict(device_id)
+    model_test = load_antispoof(device_id)
+    
     image_cropper = CropImage()
     # image = cv2.imread(SAMPLE_IMAGE_PATH + image_name)
     image = cv2.resize(image, (int(image.shape[0] * 3 / 4), image.shape[0]))
