@@ -430,9 +430,15 @@ def main():
                 file.write(img_file_buffer.getbuffer())
                 # st.success('Image Saved Successfully!')
 
-            face_locations ,prob = mtcnn(image_array,return_prob=True)
-            torch_loc = torch.stack([face_locations[0]]).to(device)
-            encodesCurFrame = resnet(torch_loc).detach().cpu()
+            
+            face_locations, prob = mtcnn(image_array, return_prob=True)
+
+            if face_locations is not None and len(face_locations) > 0:
+                torch_loc = torch.stack([face_locations[0]]).to(device)
+                encodesCurFrame = resnet(torch_loc).detach().cpu()
+            else:
+                st.error("No face detected. Please upload a clear image with your face visible.")
+                return
 
             df_new = pd.DataFrame(data=encodesCurFrame,
                                   columns=COLS_ENCODE)
