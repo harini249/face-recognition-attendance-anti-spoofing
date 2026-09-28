@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+
+visitor_database/
+visitor_history/
+user_db.csv
+
+requirements-current.txt
+
+.env
+.venv/
+venv/
